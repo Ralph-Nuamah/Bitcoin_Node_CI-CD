@@ -1,0 +1,30 @@
+name: Bitcoin Core Update
+
+on:
+  push:  # Trigger workflow on push events to the main branch
+    branches:
+      - main
+
+jobs:
+  update:
+    runs-on: ubuntu-latest  # Run the workflow on an Ubuntu runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3  # Checkout your code from GitHub
+
+      - name: Connect to EC2 and Update Bitcoin Core
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+        run: |
+          echo "$PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ubuntu@34.239.42.254 << 'EOF'
+            sudo apt update && sudo apt upgrade -y
+            # Script to update Bitcoin Core
+            wget https://bitcoin.org/bin/bitcoin-core-22.0/bitcoin-22.0-x86_64-linux-gnu.tar.gz
+            tar -xzvf bitcoin-22.0-x86_64-linux-gnu.tar.gz
+            sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-22.0/bin/*
+            bitcoin-cli stop
+            bitcoind -daemon
+          EOF
