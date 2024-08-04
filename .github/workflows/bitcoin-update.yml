@@ -13,18 +13,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3  # Checkout your code from GitHub
 
+      # Explicitly specify Node.js version 20 for consistency
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
       - name: Connect to EC2 and Update Bitcoin Core
         env:
-          PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+          EC2_PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
         run: |
-          echo "$PRIVATE_KEY" > private_key.pem
+          # Save the private key to a file
+          echo "$EC2_PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
+          
+          # Connect to the EC2 instance and perform updates
           ssh -o StrictHostKeyChecking=no -i private_key.pem ubuntu@34.239.42.254 << 'EOF'
+            # Update system packages
             sudo apt update && sudo apt upgrade -y
-            # Script to update Bitcoin Core
-            wget https://bitcoin.org/bin/bitcoin-core-22.0/bitcoin-22.0-x86_64-linux-gnu.tar.gz
-            tar -xzvf bitcoin-22.0-x86_64-linux-gnu.tar.gz
-            sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-22.0/bin/*
-            bitcoin-cli stop
-            bitcoind -daemon
-          EOF
+            
+            # Download and install the latest Bitcoin Core
+            wget https://bitcoin.org/bin/bitcoin-core-25.0/bitcoin-25.0-x86_64-linux-gnu.tar.gz
+            tar -xzvf bitcoin-25.0-x86_64-linux-gnu.tar.gz
+            sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-25.0/bin/*
+            
+            # Restart Bitcoin Core
+            bitcoin
