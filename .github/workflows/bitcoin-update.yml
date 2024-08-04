@@ -1,42 +1,4 @@
-name: Bitcoin Core name: Bitcoin Core Update
-
-on:
-  push:  # Trigger workflow on push events to the main branch
-    branches:
-      - main
-
-jobs:
-  update:
-    runs-on: ubuntu-latest  # Run the workflow on an Ubuntu runner
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3  # Checkout your code from GitHub
-
-      - name: Install AWS CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y awscli
-
-      - name: Configure AWS CLI
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-          aws configure set region $AWS_REGION
-
-      - name: Execute Commands on EC2 using SSM
-        env:
-          INSTANCE_ID: i-0aaecf9c71c974707
-        run: |
-          # Send command to update Bitcoin Core on the EC2 instance
-          aws ssm send-command \
-            --document-name "AWS-RunShellScript" \
-            --targets "Key=instanceids,Values=$INSTANCE_ID" \
-            --parameters 'commands=["sudo apt update && sudo apt upgrade -y", "wget https://bitcoin.org/bin/bitcoin-core-25.0/bitcoin-25.0-x86_64-linux-gnu.tar.gz", "tar -xzvf bitcoin-25.0-x86_64-linux-gnu.tar.gz", "sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-25.0/bin/*", "bitcoin"]'
+name: Bitcoin Core Update
 
 on:
   push:  # Trigger workflow on push events to the main branch
