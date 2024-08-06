@@ -24,12 +24,12 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: 'us-east-1'  # Change to your region if needed
+          aws-region: 'us-east-1'  # Your AWS region
 
       - name: Update and Sync Bitcoin Core on EC2
         run: |
-          # Define the EC2 instance ID
-          INSTANCE_ID="i-0abcd1234efgh5678"  # Replace with your instance ID
+          # Use the provided EC2 instance ID
+          INSTANCE_ID="i-0aaecf9c71c974707"  # Your instance ID
 
           # Use AWS SSM to execute commands on the EC2 instance
           aws ssm send-command \
@@ -44,4 +44,4 @@ jobs:
               "bitcoind -daemon",
               "bitcoin-cli getblockchaininfo | grep \"verificationprogress\""
             ]' \
-            --region us-east-1  # Change to your region if needed
+            --region us-east-1  # Your AWS region
