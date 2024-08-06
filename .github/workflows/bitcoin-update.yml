@@ -1,4 +1,4 @@
-name: Bitcoin Core Update
+name: Bitcoin Core Update and Sync
 
 on:
   push:  # Trigger workflow on push events to the main branch
@@ -6,34 +6,42 @@ on:
       - main
 
 jobs:
-  update:
+  update-and-sync:
     runs-on: ubuntu-latest  # Run the workflow on an Ubuntu runner
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3  # Checkout your code from GitHub
 
-      - name: Install AWS CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y awscli
+      # Explicitly specify Node.js version 20 for consistency
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
 
-      - name: Configure AWS CLI
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-          aws configure set region $AWS_REGION
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: 'us-east-1'  # Change to your region if needed
 
-      - name: Execute Commands on EC2 using SSM
-        env:
-          INSTANCE_ID: i-0aaecf9c71c974707
+      - name: Update and Sync Bitcoin Core on EC2
         run: |
-          # Send command to update Bitcoin Core on the EC2 instance
+          # Define the EC2 instance ID
+          INSTANCE_ID="i-0abcd1234efgh5678"  # Replace with your instance ID
+
+          # Use AWS SSM to execute commands on the EC2 instance
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=$INSTANCE_ID" \
-            --parameters 'commands=["sudo apt update && sudo apt upgrade -y", "wget https://bitcoin.org/bin/bitcoin-core-25.0/bitcoin-25.0-x86_64-linux-gnu.tar.gz", "tar -xzvf bitcoin-25.0-x86_64-linux-gnu.tar.gz", "sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-25.0/bin/*", "bitcoin"]'
+            --parameters 'commands=[
+              "sudo apt update && sudo apt upgrade -y",
+              "wget https://bitcoin.org/bin/bitcoin-core-25.0/bitcoin-25.0-x86_64-linux-gnu.tar.gz",
+              "tar -xzvf bitcoin-25.0-x86_64-linux-gnu.tar.gz",
+              "sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-25.0/bin/*",
+              "bitcoin-cli stop",
+              "bitcoind -daemon",
+              "bitcoin-cli getblockchaininfo | grep \"verificationprogress\""
+            ]' \
+            --region us-east-1  # Change to your region if needed
